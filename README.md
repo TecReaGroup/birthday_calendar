@@ -134,7 +134,7 @@ npx wrangler d1 create birthday-calendar
 
 ```jsonc
 {
-  "binding": "DB",
+  "binding": "birthday_calendar",
   "database_name": "birthday-calendar",
   "database_id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 }

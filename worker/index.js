@@ -50,7 +50,8 @@ async function readJson(request) {
 }
 
 async function listBirthdays(env) {
-  const { results } = await env.DB.prepare(
+  const db = env.birthday_calendar;
+  const { results } = await db.prepare(
     `SELECT id, name, date, year, calendar, created_at, updated_at
      FROM birthdays
      ORDER BY date ASC, name COLLATE NOCASE ASC`
@@ -62,8 +63,9 @@ async function listBirthdays(env) {
 async function createBirthday(request, env) {
   const input = normalizeBirthday(await readJson(request));
   const id = crypto.randomUUID();
+  const db = env.birthday_calendar;
 
-  await env.DB.prepare(
+  await db.prepare(
     `INSERT INTO birthdays (id, name, date, year, calendar)
      VALUES (?, ?, ?, ?, ?)`
   )
@@ -79,7 +81,8 @@ async function updateBirthday(request, env, id) {
   }
 
   const input = normalizeBirthday(await readJson(request));
-  const result = await env.DB.prepare(
+  const db = env.birthday_calendar;
+  const result = await db.prepare(
     `UPDATE birthdays
      SET name = ?, date = ?, year = ?, calendar = ?, updated_at = CURRENT_TIMESTAMP
      WHERE id = ?`
@@ -99,7 +102,8 @@ async function deleteBirthday(env, id) {
     return error("Birthday id is required");
   }
 
-  const result = await env.DB.prepare("DELETE FROM birthdays WHERE id = ?")
+  const db = env.birthday_calendar;
+  const result = await db.prepare("DELETE FROM birthdays WHERE id = ?")
     .bind(id)
     .run();
 
@@ -111,8 +115,8 @@ async function deleteBirthday(env, id) {
 }
 
 async function handleApi(request, env) {
-  if (!env.DB) {
-    return error("D1 binding DB is not configured", 500);
+  if (!env.birthday_calendar) {
+    return error("D1 binding birthday_calendar is not configured", 500);
   }
 
   const url = new URL(request.url);
