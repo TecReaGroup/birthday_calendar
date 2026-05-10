@@ -20,6 +20,8 @@ interface UpcomingBirthday extends Birthday {
 export function BirthdayCalendar() {
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [birthdays, setBirthdays] = useState<Birthday[]>([]);
+  const [isLoadingBirthdays, setIsLoadingBirthdays] = useState(true);
+  const [syncError, setSyncError] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [newName, setNewName] = useState('');
   const [newYear, setNewYear] = useState('');
@@ -30,18 +32,101 @@ export function BirthdayCalendar() {
   const [yearOffset, setYearOffset] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
 
-  // Load birthdays from localStorage
-  useEffect(() => {
-    const stored = localStorage.getItem('birthdays');
-    if (stored) {
-      setBirthdays(JSON.parse(stored));
+  const normalizeBirthday = (birthday: Birthday): Birthday => ({
+    ...birthday,
+    year: birthday.year ?? undefined,
+    calendar: birthday.calendar ?? 'solar',
+  });
+
+  const requestJson = async <T,>(url: string, init?: RequestInit): Promise<T> => {
+    const response = await fetch(url, {
+      ...init,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(init?.headers || {}),
+      },
+    });
+
+    if (!response.ok) {
+      let message = '云端数据同步失败';
+      try {
+        const body = await response.json();
+        message = body.error || message;
+      } catch {
+        message = response.statusText || message;
+      }
+      throw new Error(message);
     }
+
+    return response.json();
+  };
+
+  const getLocalBirthdays = (): Birthday[] => {
+    const stored = localStorage.getItem('birthdays');
+    if (!stored) return [];
+
+    try {
+      const parsed = JSON.parse(stored);
+      return Array.isArray(parsed) ? parsed.map(normalizeBirthday) : [];
+    } catch {
+      return [];
+    }
+  };
+
+  // Load birthdays from D1. If D1 is empty, migrate existing localStorage data once.
+  useEffect(() => {
+    let ignore = false;
+
+    const loadBirthdays = async () => {
+      try {
+        const remoteBirthdays = await requestJson<Birthday[]>('/api/birthdays');
+        if (ignore) return;
+
+        const localBirthdays = getLocalBirthdays();
+
+        if (remoteBirthdays.length === 0 && localBirthdays.length > 0) {
+          const migrated = await Promise.all(
+            localBirthdays.map((birthday) =>
+              requestJson<Birthday>('/api/birthdays', {
+                method: 'POST',
+                body: JSON.stringify(normalizeBirthday(birthday)),
+              })
+            )
+          );
+
+          if (!ignore) {
+            setBirthdays(migrated.map(normalizeBirthday));
+          }
+        } else {
+          setBirthdays(remoteBirthdays.map(normalizeBirthday));
+        }
+
+        setSyncError('');
+      } catch (err) {
+        if (!ignore) {
+          setBirthdays(getLocalBirthdays());
+          setSyncError(err instanceof Error ? err.message : '云端数据同步失败');
+        }
+      } finally {
+        if (!ignore) {
+          setIsLoadingBirthdays(false);
+        }
+      }
+    };
+
+    loadBirthdays();
+
+    return () => {
+      ignore = true;
+    };
   }, []);
 
-  // Save birthdays to localStorage
+  // Keep a local backup for offline recovery and first-time migration.
   useEffect(() => {
-    localStorage.setItem('birthdays', JSON.stringify(birthdays));
-  }, [birthdays]);
+    if (!isLoadingBirthdays) {
+      localStorage.setItem('birthdays', JSON.stringify(birthdays));
+    }
+  }, [birthdays, isLoadingBirthdays]);
 
   const yearStart = startOfYear(new Date(currentYear, 0, 1));
   const yearEnd = endOfYear(new Date(currentYear, 11, 31));
@@ -171,28 +256,61 @@ export function BirthdayCalendar() {
       .sort((a, b) => a.daysUntil - b.daysUntil);
   };
 
-  const addBirthday = () => {
+  const addBirthday = async () => {
     if (!newName.trim() || !newMonth || !newDay) return;
 
-    const birthday: Birthday = {
-      id: Date.now().toString(),
+    const birthday = {
       name: newName.trim(),
       date: `${newMonth.padStart(2, '0')}-${newDay.padStart(2, '0')}`,
       year: newYear ? parseInt(newYear) : undefined,
       calendar: newCalendar,
     };
 
-    setBirthdays([...birthdays, birthday]);
-    setNewName('');
-    setNewYear('');
-    setNewMonth('');
-    setNewDay('');
-    setNewCalendar('solar');
-    setShowAddForm(false);
+    try {
+      const savedBirthday = await requestJson<Birthday>('/api/birthdays', {
+        method: 'POST',
+        body: JSON.stringify(birthday),
+      });
+
+      setBirthdays([...birthdays, normalizeBirthday(savedBirthday)]);
+      setNewName('');
+      setNewYear('');
+      setNewMonth('');
+      setNewDay('');
+      setNewCalendar('solar');
+      setShowAddForm(false);
+      setSyncError('');
+    } catch (err) {
+      setSyncError(err instanceof Error ? err.message : '生日保存失败');
+    }
   };
 
-  const deleteBirthday = (id: string) => {
-    setBirthdays(birthdays.filter(b => b.id !== id));
+  const deleteBirthday = async (id: string) => {
+    try {
+      await requestJson<{ ok: boolean }>(`/api/birthdays/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      });
+      setBirthdays(birthdays.filter(b => b.id !== id));
+      setSyncError('');
+    } catch (err) {
+      setSyncError(err instanceof Error ? err.message : '生日删除失败');
+    }
+  };
+
+  const clearBirthdays = async () => {
+    try {
+      await Promise.all(
+        birthdays.map((birthday) =>
+          requestJson<{ ok: boolean }>(`/api/birthdays/${encodeURIComponent(birthday.id)}`, {
+            method: 'DELETE',
+          })
+        )
+      );
+      setBirthdays([]);
+      setSyncError('');
+    } catch (err) {
+      setSyncError(err instanceof Error ? err.message : '数据清空失败');
+    }
   };
 
   const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
@@ -343,6 +461,12 @@ export function BirthdayCalendar() {
           </div>
         )}
 
+        {(isLoadingBirthdays || syncError) && (
+          <div className="mb-4 rounded-lg border border-purple-200 bg-white/70 px-4 py-3 text-sm text-gray-700">
+            {isLoadingBirthdays ? '正在加载云端生日数据...' : syncError}
+          </div>
+        )}
+
         <div className="flex gap-6">
           {/* Left: Main Calendar Area or Settings */}
           <div className="flex-1">
@@ -375,7 +499,7 @@ export function BirthdayCalendar() {
                     <button
                       onClick={() => {
                         if (confirm('确定要清空所有生日数据吗？此操作无法撤销。')) {
-                          setBirthdays([]);
+                          clearBirthdays();
                         }
                       }}
                       className="px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-all text-sm"

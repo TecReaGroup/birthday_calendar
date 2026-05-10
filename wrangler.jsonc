@@ -1,8 +1,21 @@
 {
-  "name": "birthday-calendar",
-  "compatibility_date": "2026-05-10",
-  "assets": {
-    "directory": "./dist",
-    "not_found_handling": "single-page-application"
-  }
+	"name": "birthday-calendar",
+	"compatibility_date": "2026-05-10",
+	"main": "./worker/index.js",
+	"assets": {
+		"directory": "./dist",
+		"not_found_handling": "single-page-application",
+		"binding": "ASSETS",
+		"run_worker_first": [
+			"/api/*"
+		]
+	},
+	"d1_databases": [
+		{
+			"binding": "birthday_calendar",
+			"database_name": "birthday-calendar",
+			"database_id": "57780d35-897f-48d0-8cd4-9d42108aabc2",
+			"remote": true
+		}
+	]
 }
