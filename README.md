@@ -119,3 +119,11 @@ Cloudflare 会根据项目根目录的 `wrangler.jsonc` 自动读取 `assets.dir
 - 清理浏览器数据后会丢失
 
 如果需要多设备同步或云端持久化，需要增加后端接口，并接入 Cloudflare D1、KV 或其他数据库。
+
+
+持久化部署：
+Cloudflare D1
+
+
+私有化访问：
+Cloudflare Access / Zero Trust
