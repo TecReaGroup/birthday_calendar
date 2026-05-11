@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Plus, Trash2, Cake, Gift, X, Settings, ArrowLeft } from 'lucide-react';
-import { format, startOfYear, endOfYear, eachDayOfInterval, differenceInCalendarDays, getMonth, getDate, setMonth, setDate, getDay, startOfWeek, addDays, endOfMonth } from 'date-fns';
+import { format, eachDayOfInterval, differenceInCalendarDays, getMonth, getDate, getDay, addMonths, endOfMonth } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { Lunar } from 'lunar-javascript';
 
@@ -16,6 +16,105 @@ interface UpcomingBirthday extends Birthday {
   daysUntil: number;
   nextDate: Date;
 }
+
+type DateKey = string;
+type YearBirthdayIndex = Map<DateKey, BirthdayOccurrence[]>;
+type BirthdayIndexByYear = Map<number, YearBirthdayIndex>;
+
+interface BirthdayOccurrence {
+  birthday: Birthday;
+  solarDate: Date;
+  solarDateKey: DateKey;
+  sourceLunarYear?: number;
+}
+
+const toDateKey = (date: Date): DateKey => format(date, 'yyyy-MM-dd');
+
+const parseBirthdayDate = (date: string): [number, number] => {
+  const [month, day] = date.split('-').map(Number);
+  return [month, day];
+};
+
+// 将农历日期转换为指定农历年份中的阳历日期。部分年份没有某些农历日，例如腊月三十。
+const lunarToSolar = (lunarMonth: number, lunarDay: number, lunarYear: number): Date | null => {
+  try {
+    const lunar = Lunar.fromYmd(lunarYear, lunarMonth, lunarDay);
+    const solar = lunar.getSolar();
+    return new Date(solar.getYear(), solar.getMonth() - 1, solar.getDay());
+  } catch {
+    return null;
+  }
+};
+
+const getBirthdayOccurrencesForSolarYear = (
+  birthday: Birthday,
+  solarYear: number
+): BirthdayOccurrence[] => {
+  const [month, day] = parseBirthdayDate(birthday.date);
+
+  if (birthday.calendar !== 'lunar') {
+    const solarDate = new Date(solarYear, month - 1, day);
+    if (solarDate.getFullYear() !== solarYear || getMonth(solarDate) !== month - 1 || getDate(solarDate) !== day) {
+      return [];
+    }
+
+    return [{
+      birthday,
+      solarDate,
+      solarDateKey: toDateKey(solarDate),
+    }];
+  }
+
+  const occurrences: BirthdayOccurrence[] = [];
+  const seenDateKeys = new Set<DateKey>();
+
+  [solarYear - 1, solarYear, solarYear + 1].forEach((lunarYear) => {
+    const solarDate = lunarToSolar(month, day, lunarYear);
+    if (!solarDate || solarDate.getFullYear() !== solarYear) return;
+
+    const solarDateKey = toDateKey(solarDate);
+    if (seenDateKeys.has(solarDateKey)) return;
+
+    seenDateKeys.add(solarDateKey);
+    occurrences.push({
+      birthday,
+      solarDate,
+      solarDateKey,
+      sourceLunarYear: lunarYear,
+    });
+  });
+
+  return occurrences;
+};
+
+const buildBirthdayIndexForYear = (
+  birthdays: Birthday[],
+  solarYear: number
+): YearBirthdayIndex => {
+  const index: YearBirthdayIndex = new Map();
+
+  birthdays.forEach((birthday) => {
+    getBirthdayOccurrencesForSolarYear(birthday, solarYear).forEach((occurrence) => {
+      const existing = index.get(occurrence.solarDateKey) ?? [];
+      index.set(occurrence.solarDateKey, [...existing, occurrence]);
+    });
+  });
+
+  return index;
+};
+
+const buildBirthdayIndexByYear = (
+  birthdays: Birthday[],
+  years: number[]
+): BirthdayIndexByYear => {
+  const indexByYear: BirthdayIndexByYear = new Map();
+
+  Array.from(new Set(years)).forEach((year) => {
+    indexByYear.set(year, buildBirthdayIndexForYear(birthdays, year));
+  });
+
+  return indexByYear;
+};
 
 export function BirthdayCalendar() {
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
@@ -128,36 +227,24 @@ export function BirthdayCalendar() {
     }
   }, [birthdays, isLoadingBirthdays]);
 
-  const yearStart = startOfYear(new Date(currentYear, 0, 1));
-  const yearEnd = endOfYear(new Date(currentYear, 11, 31));
+  const birthdayIndexByYear = useMemo(() => {
+    const today = new Date();
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const reminderEnd = addMonths(todayStart, 3);
+    const years = [
+      currentYear - 1,
+      currentYear,
+      currentYear + 1,
+      todayStart.getFullYear(),
+      reminderEnd.getFullYear(),
+    ];
 
-  // 将农历日期转换为指定年份的阳历日期
-  const lunarToSolar = (lunarMonth: number, lunarDay: number, year: number): Date | null => {
-    try {
-      const lunar = Lunar.fromYmd(year, lunarMonth, lunarDay);
-      const solar = lunar.getSolar();
-      return new Date(solar.getYear(), solar.getMonth() - 1, solar.getDay());
-    } catch (e) {
-      return null;
-    }
-  };
+    return buildBirthdayIndexByYear(birthdays, years);
+  }, [birthdays, currentYear]);
 
   const getBirthdaysForDate = (date: Date) => {
-    const monthDay = format(date, 'MM-dd');
-    return birthdays.filter(b => {
-      if (b.calendar === 'lunar') {
-        // 农历生日需要转换
-        const [month, day] = b.date.split('-').map(Number);
-        const solarDate = lunarToSolar(month, day, date.getFullYear());
-        if (solarDate) {
-          return format(solarDate, 'MM-dd') === monthDay;
-        }
-        return false;
-      } else {
-        // 阳历生日直接比较
-        return b.date === monthDay;
-      }
-    });
+    const yearIndex = birthdayIndexByYear.get(date.getFullYear());
+    return yearIndex?.get(toDateKey(date))?.map((occurrence) => occurrence.birthday) ?? [];
   };
 
   const getBirthdayIntensity = (date: Date) => {
@@ -215,44 +302,21 @@ export function BirthdayCalendar() {
 
   const getUpcomingBirthdays = (): UpcomingBirthday[] => {
     const today = new Date();
-    const todayMonth = getMonth(today);
-    const todayDate = getDate(today);
-    const threeMonthsLater = new Date(today);
-    threeMonthsLater.setMonth(threeMonthsLater.getMonth() + 3);
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const threeMonthsLater = addMonths(todayStart, 3);
+    const reminderYears = Array.from(new Set([
+      todayStart.getFullYear(),
+      threeMonthsLater.getFullYear(),
+    ]));
 
-    return birthdays
-      .map(birthday => {
-        const [month, day] = birthday.date.split('-').map(Number);
-        let nextDate: Date;
-
-        if (birthday.calendar === 'lunar') {
-          // 农历生日，转换为今年的阳历日期
-          const solarThisYear = lunarToSolar(month, day, today.getFullYear());
-          if (solarThisYear && solarThisYear >= today) {
-            nextDate = solarThisYear;
-          } else {
-            // 今年的已经过了，计算明年的
-            const solarNextYear = lunarToSolar(month, day, today.getFullYear() + 1);
-            nextDate = solarNextYear || new Date(today.getFullYear() + 1, month - 1, day);
-          }
-        } else {
-          // 阳历生日
-          nextDate = setDate(setMonth(new Date(), month - 1), day);
-          if (getMonth(nextDate) < todayMonth ||
-              (getMonth(nextDate) === todayMonth && getDate(nextDate) < todayDate)) {
-            nextDate = setDate(setMonth(new Date(today.getFullYear() + 1, month - 1, 1), month - 1), day);
-          }
-        }
-
-        const daysUntil = differenceInCalendarDays(nextDate, today);
-
-        return {
-          ...birthday,
-          daysUntil,
-          nextDate
-        };
-      })
-      .filter(birthday => birthday.nextDate <= threeMonthsLater)
+    return reminderYears
+      .flatMap((year) => Array.from(birthdayIndexByYear.get(year)?.values() ?? []).flat())
+      .filter((occurrence) => occurrence.solarDate >= todayStart && occurrence.solarDate <= threeMonthsLater)
+      .map((occurrence) => ({
+        ...occurrence.birthday,
+        daysUntil: differenceInCalendarDays(occurrence.solarDate, todayStart),
+        nextDate: occurrence.solarDate,
+      }))
       .sort((a, b) => a.daysUntil - b.daysUntil);
   };
 
@@ -316,11 +380,8 @@ export function BirthdayCalendar() {
   const weekDays = ['日', '一', '二', '三', '四', '五', '六'];
   const upcomingBirthdays = getUpcomingBirthdays();
 
-  const totalBirthdays = birthdays.filter(b => {
-    const [month, day] = b.date.split('-').map(Number);
-    const birthdayDate = new Date(currentYear, month - 1, day);
-    return birthdayDate >= yearStart && birthdayDate <= yearEnd;
-  }).length;
+  const totalBirthdays = Array.from(birthdayIndexByYear.get(currentYear)?.values() ?? [])
+    .reduce((total, occurrences) => total + occurrences.length, 0);
 
   const thisYear = new Date().getFullYear();
   const availableYears = Array.from({ length: 20 }, (_, i) => thisYear - 10 + i);
@@ -712,7 +773,7 @@ export function BirthdayCalendar() {
                             <div className="font-medium text-gray-800 truncate">{birthday.name}</div>
                             <div className="text-xs text-gray-600 mt-0.5">
                               {displayMonth}月{displayDay}日
-                              {birthday.year && ` · ${new Date().getFullYear() - birthday.year}岁`}
+                              {birthday.year && ` · ${birthday.nextDate.getFullYear() - birthday.year}岁`}
                             </div>
                           </div>
                           <div className={`ml-2 ${isToday ? 'animate-pulse' : ''}`}>
