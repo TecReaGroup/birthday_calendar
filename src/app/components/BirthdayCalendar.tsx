@@ -811,29 +811,28 @@ export function BirthdayCalendar() {
           </div>
 
           {/* Right Sidebar */}
-          <div className="flex w-full flex-col lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:w-64">
-            <div className="space-y-4 flex-1 overflow-y-auto pb-4">
-              {/* Add Birthday Button */}
-              <button
-                onClick={() => {
-                  setShowAddForm(!showAddForm);
-                  setAddFormError('');
-                }}
-                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-pink-400 to-purple-400 hover:from-pink-500 hover:to-purple-500 text-white px-4 py-2.5 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
-              >
-                <Plus size={18} />
-                添加生日
-              </button>
+          <div className="flex w-full flex-col gap-4 lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:w-64">
+            {/* Add Birthday Button */}
+            <button
+              onClick={() => {
+                setShowAddForm(!showAddForm);
+                setAddFormError('');
+              }}
+              className="w-full flex-shrink-0 flex items-center justify-center gap-2 bg-gradient-to-r from-pink-400 to-purple-400 hover:from-pink-500 hover:to-purple-500 text-white px-4 py-2.5 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+            >
+              <Plus size={18} />
+              添加生日
+            </button>
 
-              {/* Upcoming Birthdays */}
-              <div>
+            {/* Upcoming Birthdays */}
+            <div className="flex-shrink-0">
               <div className="flex items-center gap-2 text-sm text-gray-600 mb-2 font-medium">
                 <Gift size={16} />
                 即将到来的生日
               </div>
               <div className="space-y-2">
                 {upcomingBirthdays.length > 0 ? (
-                  upcomingBirthdays.map((birthday) => {
+                  upcomingBirthdays.slice(0, 3).map((birthday) => {
                     const isToday = birthday.daysUntil === 0;
                     // 显示转换后的阳历日期
                     const displayMonth = getMonth(birthday.nextDate) + 1;
@@ -884,9 +883,9 @@ export function BirthdayCalendar() {
 
             {/* All Birthdays */}
             {birthdays.length > 0 && (
-              <div>
+              <div className="flex min-h-0 flex-1 flex-col">
                 <div className="text-sm text-gray-600 mb-2 font-medium">所有生日</div>
-                <div className="space-y-1 max-h-48 overflow-y-auto">
+                <div className="birthday-list-scroll -mr-1 max-h-72 space-y-1 overflow-y-auto pr-1 lg:max-h-none lg:flex-1">
                   {[...birthdays]
                     .sort(compareBirthdaysForList)
                     .map(birthday => {
@@ -914,7 +913,6 @@ export function BirthdayCalendar() {
                 </div>
               </div>
             )}
-            </div>
 
             {/* Settings Button */}
             <button

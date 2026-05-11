@@ -179,3 +179,27 @@
     line-height: 1.5;
   }
 }
+
+@layer utilities {
+  .birthday-list-scroll {
+    scrollbar-color: rgb(216 180 254 / 0.65) transparent;
+    scrollbar-width: thin;
+  }
+
+  .birthday-list-scroll::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .birthday-list-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .birthday-list-scroll::-webkit-scrollbar-thumb {
+    background: rgb(216 180 254 / 0.55);
+    border-radius: 999px;
+  }
+
+  .birthday-list-scroll:hover::-webkit-scrollbar-thumb {
+    background: rgb(192 132 252 / 0.75);
+  }
+}
