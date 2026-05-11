@@ -344,7 +344,7 @@ export function BirthdayCalendar() {
   };
 
   return (
-    <div className="min-h-screen p-6">
+    <div className="min-h-screen p-3 sm:p-6">
       <div className="max-w-7xl mx-auto">{/* Removed standalone header */}
 
         {/* Add Birthday Modal */}
@@ -467,9 +467,9 @@ export function BirthdayCalendar() {
           </div>
         )}
 
-        <div className="flex gap-6">
+        <div className="flex flex-col gap-6 lg:flex-row">
           {/* Left: Main Calendar Area or Settings */}
-          <div className="flex-1">
+          <div className="min-w-0 flex-1">
             {showSettings ? (
               /* Settings Page */
               <>
@@ -489,8 +489,7 @@ export function BirthdayCalendar() {
                 {/* Settings Content */}
                 <div className="space-y-6">
                   <div className="border border-purple-200 rounded-lg p-6 bg-white/50">
-                    <h2 className="text-lg font-semibold text-gray-800 mb-4">关于</h2>
-                    <p className="text-gray-600 text-sm">生日日历 v1.0</p>
+                    <h2 className="text-lg font-semibold text-gray-800 mb-4">关于 生日日历 v1.0</h2>
                     <p className="text-gray-500 text-xs mt-2">记录朋友的重要日子</p>
                   </div>
 
@@ -513,7 +512,7 @@ export function BirthdayCalendar() {
               /* Calendar View */
               <>
                 {/* Title and Year Selector Row */}
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex flex-col gap-3 mb-4 sm:flex-row sm:items-center sm:justify-between">
                   <h1 className="flex items-center gap-3 text-3xl font-bold bg-gradient-to-r from-pink-500 to-purple-500 bg-clip-text text-transparent">
                     <Cake size={36} className="text-pink-500" />
                     生日
@@ -544,7 +543,7 @@ export function BirthdayCalendar() {
             {/* Calendar Container */}
             <div className="space-y-3">
               {monthRows.map((row, rowIndex) => (
-                <div key={rowIndex} className="grid grid-cols-4 gap-3">
+                <div key={rowIndex} className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                   {row.map((month) => (
                     <div key={month.monthIndex} className="border border-purple-200 rounded-lg p-2 bg-white/50">
                       {/* Month Header */}
@@ -634,10 +633,10 @@ export function BirthdayCalendar() {
             </div>
 
             {/* Legend and Stats */}
-            <div className="mt-4 flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2 text-gray-600">
+            <div className="mt-4 flex flex-col gap-3 text-xs sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-wrap items-center gap-2 text-gray-600">
                 <span>生日密度：</span>
-                <div className="flex items-center gap-1.5">
+                <div className="flex flex-wrap items-center gap-1.5">
                   <div className="flex items-center gap-0.5">
                     <div className="w-4 h-4 bg-purple-50 rounded border border-purple-200" />
                     <span>无</span>
@@ -667,7 +666,7 @@ export function BirthdayCalendar() {
           </div>
 
           {/* Right Sidebar */}
-          <div className="sticky top-6 h-[calc(100vh-3rem)] w-64 flex flex-col">
+          <div className="flex w-full flex-col lg:sticky lg:top-6 lg:h-[calc(100vh-3rem)] lg:w-64">
             <div className="space-y-4 flex-1 overflow-y-auto pb-4">
               {/* Add Birthday Button */}
               <button
