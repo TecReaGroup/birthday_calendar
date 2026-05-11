@@ -28,11 +28,53 @@ interface BirthdayOccurrence {
   sourceLunarYear?: number;
 }
 
+const SOLAR_MAX_DAYS_BY_MONTH = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
 const toDateKey = (date: Date): DateKey => format(date, 'yyyy-MM-dd');
 
 const parseBirthdayDate = (date: string): [number, number] => {
   const [month, day] = date.split('-').map(Number);
   return [month, day];
+};
+
+const validateBirthdayInput = (
+  name: string,
+  year: string,
+  month: string,
+  day: string,
+  calendar: 'solar' | 'lunar',
+  maxYear: number
+): string => {
+  const trimmedName = name.trim();
+  if (!trimmedName) return '请输入朋友名字';
+  if (!month || !day) return '请输入生日月份和日期';
+
+  const monthNumber = Number(month);
+  const dayNumber = Number(day);
+
+  if (!Number.isInteger(monthNumber) || monthNumber < 1 || monthNumber > 12) {
+    return '月份必须是 1 到 12';
+  }
+
+  if (!Number.isInteger(dayNumber) || dayNumber < 1) {
+    return '日期必须大于 0';
+  }
+
+  if (calendar === 'lunar') {
+    if (dayNumber > 30) return '农历日期必须是 1 到 30';
+  } else {
+    const maxDay = SOLAR_MAX_DAYS_BY_MONTH[monthNumber - 1];
+    if (dayNumber > maxDay) return `${monthNumber}月没有${dayNumber}日`;
+  }
+
+  if (year) {
+    const yearNumber = Number(year);
+    if (!Number.isInteger(yearNumber) || yearNumber < 1 || yearNumber > maxYear) {
+      return `年份必须是 1 到 ${maxYear}`;
+    }
+  }
+
+  return '';
 };
 
 // 将农历日期转换为指定农历年份中的阳历日期。部分年份没有某些农历日，例如腊月三十。
@@ -127,6 +169,7 @@ export function BirthdayCalendar() {
   const [newMonth, setNewMonth] = useState('');
   const [newDay, setNewDay] = useState('');
   const [newCalendar, setNewCalendar] = useState<'solar' | 'lunar'>('solar');
+  const [addFormError, setAddFormError] = useState('');
   const [hoveredDay, setHoveredDay] = useState<string | null>(null);
   const [yearOffset, setYearOffset] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
@@ -303,7 +346,19 @@ export function BirthdayCalendar() {
   };
 
   const addBirthday = async () => {
-    if (!newName.trim() || !newMonth || !newDay) return;
+    const validationError = validateBirthdayInput(
+      newName,
+      newYear,
+      newMonth,
+      newDay,
+      newCalendar,
+      new Date().getFullYear()
+    );
+
+    if (validationError) {
+      setAddFormError(validationError);
+      return;
+    }
 
     const birthday = {
       name: newName.trim(),
@@ -325,9 +380,10 @@ export function BirthdayCalendar() {
       setNewDay('');
       setNewCalendar('solar');
       setShowAddForm(false);
+      setAddFormError('');
       setSyncError('');
     } catch (err) {
-      setSyncError(err instanceof Error ? err.message : '生日保存失败');
+      setAddFormError(err instanceof Error ? err.message : '生日保存失败');
     }
   };
 
@@ -397,7 +453,10 @@ export function BirthdayCalendar() {
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-gray-800">添加生日</h2>
                 <button
-                  onClick={() => setShowAddForm(false)}
+                  onClick={() => {
+                    setShowAddForm(false);
+                    setAddFormError('');
+                  }}
                   className="text-gray-400 hover:text-gray-600 transition-colors"
                 >
                   <X size={20} />
@@ -410,7 +469,10 @@ export function BirthdayCalendar() {
                     type="text"
                     placeholder="输入名字"
                     value={newName}
-                    onChange={(e) => setNewName(e.target.value)}
+                    onChange={(e) => {
+                      setNewName(e.target.value);
+                      setAddFormError('');
+                    }}
                     className="w-full px-4 py-2 bg-purple-50 border border-purple-200 rounded-lg text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-400"
                   />
                 </div>
@@ -425,6 +487,7 @@ export function BirthdayCalendar() {
                         const val = e.target.value.replace(/\D/g, '');
                         if (val.length <= 4) {
                           setNewYear(val);
+                          setAddFormError('');
                         }
                       }}
                       className="px-4 py-2 bg-purple-50 border border-purple-200 rounded-lg text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-400"
@@ -438,6 +501,7 @@ export function BirthdayCalendar() {
                         const val = e.target.value.replace(/\D/g, '');
                         if (val.length <= 2) {
                           setNewMonth(val);
+                          setAddFormError('');
                         }
                       }}
                       className="px-4 py-2 bg-purple-50 border border-purple-200 rounded-lg text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-400"
@@ -451,6 +515,7 @@ export function BirthdayCalendar() {
                         const val = e.target.value.replace(/\D/g, '');
                         if (val.length <= 2) {
                           setNewDay(val);
+                          setAddFormError('');
                         }
                       }}
                       className="px-4 py-2 bg-purple-50 border border-purple-200 rounded-lg text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-400"
@@ -463,7 +528,10 @@ export function BirthdayCalendar() {
                   <div className="relative inline-flex items-center bg-purple-50 rounded-full p-1 w-full">
                     <button
                       type="button"
-                      onClick={() => setNewCalendar('solar')}
+                      onClick={() => {
+                        setNewCalendar('solar');
+                        setAddFormError('');
+                      }}
                       className={`flex-1 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
                         newCalendar === 'solar'
                           ? 'bg-white text-purple-400 shadow-sm'
@@ -474,7 +542,10 @@ export function BirthdayCalendar() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setNewCalendar('lunar')}
+                      onClick={() => {
+                        setNewCalendar('lunar');
+                        setAddFormError('');
+                      }}
                       className={`flex-1 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
                         newCalendar === 'lunar'
                           ? 'bg-white text-purple-400 shadow-sm'
@@ -485,6 +556,11 @@ export function BirthdayCalendar() {
                     </button>
                   </div>
                 </div>
+                {addFormError && (
+                  <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                    {addFormError}
+                  </div>
+                )}
               </div>
               <div className="flex gap-3 mt-6">
                 <button
@@ -494,7 +570,10 @@ export function BirthdayCalendar() {
                   确定
                 </button>
                 <button
-                  onClick={() => setShowAddForm(false)}
+                  onClick={() => {
+                    setShowAddForm(false);
+                    setAddFormError('');
+                  }}
                   className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg transition-all duration-200"
                 >
                   取消
@@ -720,7 +799,10 @@ export function BirthdayCalendar() {
             <div className="space-y-4 flex-1 overflow-y-auto pb-4">
               {/* Add Birthday Button */}
               <button
-                onClick={() => setShowAddForm(!showAddForm)}
+                onClick={() => {
+                  setShowAddForm(!showAddForm);
+                  setAddFormError('');
+                }}
                 className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-pink-400 to-purple-400 hover:from-pink-500 hover:to-purple-500 text-white px-4 py-2.5 rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
               >
                 <Plus size={18} />

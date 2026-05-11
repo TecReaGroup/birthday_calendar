@@ -17,6 +17,8 @@ function error(message, status = 400) {
   return json({ error: message }, { status });
 }
 
+const SOLAR_MAX_DAYS_BY_MONTH = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
 function normalizeBirthday(input) {
   const name = typeof input?.name === "string" ? input.name.trim() : "";
   const date = typeof input?.date === "string" ? input.date.trim() : "";
@@ -34,8 +36,19 @@ function normalizeBirthday(input) {
     throw new Error("Date must use MM-DD format");
   }
 
-  if (year !== null && (!Number.isInteger(year) || year < 1 || year > 9999)) {
-    throw new Error("Year must be a valid integer");
+  const [month, day] = date.split("-").map(Number);
+
+  if (calendar === "lunar") {
+    if (day > 30) {
+      throw new Error("Lunar day must be between 1 and 30");
+    }
+  } else if (day > SOLAR_MAX_DAYS_BY_MONTH[month - 1]) {
+    throw new Error("Solar date is invalid");
+  }
+
+  const currentYear = new Date().getFullYear();
+  if (year !== null && (!Number.isInteger(year) || year < 1 || year > currentYear)) {
+    throw new Error(`Year must be between 1 and ${currentYear}`);
   }
 
   return { name, date, year, calendar };
