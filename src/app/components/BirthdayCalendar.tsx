@@ -172,7 +172,7 @@ export function BirthdayCalendar() {
     }
   };
 
-  // Load birthdays from D1. If D1 is empty, migrate existing localStorage data once.
+  // Load birthdays from D1. Fall back to localStorage only if the remote request fails.
   useEffect(() => {
     let ignore = false;
 
@@ -181,25 +181,7 @@ export function BirthdayCalendar() {
         const remoteBirthdays = await requestJson<Birthday[]>('/api/birthdays');
         if (ignore) return;
 
-        const localBirthdays = getLocalBirthdays();
-
-        if (remoteBirthdays.length === 0 && localBirthdays.length > 0) {
-          const migrated = await Promise.all(
-            localBirthdays.map((birthday) =>
-              requestJson<Birthday>('/api/birthdays', {
-                method: 'POST',
-                body: JSON.stringify(normalizeBirthday(birthday)),
-              })
-            )
-          );
-
-          if (!ignore) {
-            setBirthdays(migrated.map(normalizeBirthday));
-          }
-        } else {
-          setBirthdays(remoteBirthdays.map(normalizeBirthday));
-        }
-
+        setBirthdays(remoteBirthdays.map(normalizeBirthday));
         setSyncError('');
       } catch (err) {
         if (!ignore) {
