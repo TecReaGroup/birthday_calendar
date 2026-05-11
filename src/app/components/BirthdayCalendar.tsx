@@ -37,6 +37,22 @@ const parseBirthdayDate = (date: string): [number, number] => {
   return [month, day];
 };
 
+const compareBirthdaysForList = (a: Birthday, b: Birthday): number => {
+  const calendarA = a.calendar === 'lunar' ? 1 : 0;
+  const calendarB = b.calendar === 'lunar' ? 1 : 0;
+  if (calendarA !== calendarB) return calendarA - calendarB;
+
+  const [monthA, dayA] = parseBirthdayDate(a.date);
+  const [monthB, dayB] = parseBirthdayDate(b.date);
+  if (monthA !== monthB) return monthA - monthB;
+  if (dayA !== dayB) return dayA - dayB;
+
+  const nameOrder = a.name.localeCompare(b.name, 'zh-Hans-CN');
+  if (nameOrder !== 0) return nameOrder;
+
+  return a.id.localeCompare(b.id);
+};
+
 const validateBirthdayInput = (
   name: string,
   year: string,
@@ -872,26 +888,9 @@ export function BirthdayCalendar() {
                 <div className="text-sm text-gray-600 mb-2 font-medium">所有生日</div>
                 <div className="space-y-1 max-h-48 overflow-y-auto">
                   {[...birthdays]
-                    .sort((a, b) => {
-                      const [monthA, dayA] = a.date.split('-').map(Number);
-                      const [monthB, dayB] = b.date.split('-').map(Number);
-                      const today = new Date();
-                      const todayMonth = getMonth(today) + 1;
-                      const todayDay = getDate(today);
-
-                      // 计算距离今天的相对天数（考虑跨年）
-                      const getDaysFromToday = (month: number, day: number) => {
-                        if (month > todayMonth || (month === todayMonth && day >= todayDay)) {
-                          return (month - todayMonth) * 31 + (day - todayDay);
-                        } else {
-                          return (12 - todayMonth + month) * 31 + (day - todayDay);
-                        }
-                      };
-
-                      return getDaysFromToday(monthA, dayA) - getDaysFromToday(monthB, dayB);
-                    })
+                    .sort(compareBirthdaysForList)
                     .map(birthday => {
-                      const [month, day] = birthday.date.split('-').map(Number);
+                      const [month, day] = parseBirthdayDate(birthday.date);
                       return (
                         <div
                           key={birthday.id}
