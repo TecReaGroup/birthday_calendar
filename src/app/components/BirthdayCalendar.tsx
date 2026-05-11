@@ -489,8 +489,15 @@ export function BirthdayCalendar() {
                 {/* Settings Content */}
                 <div className="space-y-6">
                   <div className="border border-purple-200 rounded-lg p-6 bg-white/50">
-                    <h2 className="text-lg font-semibold text-gray-800 mb-4">关于 生日日历 v1.0</h2>
-                    <p className="text-gray-500 text-xs mt-2">记录朋友的重要日子</p>
+                    <h2 className="text-lg font-semibold text-gray-800">生日日历</h2>
+                    <p className="mt-1 text-sm leading-6 text-gray-600">
+                      集中管理阳历和农历生日，按年份查看分布，并自动提醒近期生日。
+                    </p>
+                    <div className="mt-4 flex flex-wrap gap-2 text-xs text-gray-500">
+                      <span className="rounded bg-purple-50 px-2 py-1">阳历 / 农历</span>
+                      <span className="rounded bg-purple-50 px-2 py-1">近期提醒</span>
+                      <span className="rounded bg-purple-50 px-2 py-1">云端同步</span>
+                    </div>
                   </div>
 
                   <div className="border border-purple-200 rounded-lg p-6 bg-white/50">
