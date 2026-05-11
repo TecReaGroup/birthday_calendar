@@ -667,8 +667,8 @@ export function BirthdayCalendar() {
           </div>
 
           {/* Right Sidebar */}
-          <div className="w-64 flex flex-col" style={{ height: 'calc(100vh - 8rem)' }}>
-            <div className="space-y-4 flex-1 overflow-y-auto">
+          <div className="sticky top-6 h-[calc(100vh-3rem)] w-64 flex flex-col">
+            <div className="space-y-4 flex-1 overflow-y-auto pb-4">
               {/* Add Birthday Button */}
               <button
                 onClick={() => setShowAddForm(!showAddForm)}
@@ -786,10 +786,10 @@ export function BirthdayCalendar() {
             )}
             </div>
 
-            {/* Settings Button - Fixed at bottom */}
+            {/* Settings Button */}
             <button
               onClick={() => setShowSettings(true)}
-              className="w-full flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-600 px-4 py-2.5 rounded-lg transition-all duration-200 flex-shrink-0"
+              className="mt-auto w-full flex-shrink-0 flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-600 px-4 py-2.5 rounded-lg transition-all duration-200 shadow-sm"
             >
               <Settings size={18} />
               设置
