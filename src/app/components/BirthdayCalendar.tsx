@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Trash2, Cake, Gift, X, Settings, ArrowLeft } from 'lucide-react';
 import { format, startOfYear, endOfYear, eachDayOfInterval, differenceInCalendarDays, getMonth, getDate, setMonth, setDate, getDay, startOfWeek, addDays, endOfMonth } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
-import { Lunar, Solar } from 'lunar-javascript';
+import { Lunar } from 'lunar-javascript';
 
 interface Birthday {
   id: string;
