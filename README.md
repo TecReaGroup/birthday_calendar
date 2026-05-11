@@ -17,31 +17,12 @@ npm install
 
 ## 启动开发环境
 
-安装依赖后执行：
-
 ```bash
-npm run dev
-```
-
-启动成功后，终端会显示本地访问地址，通常是：
-
-```text
-http://localhost:5173
+npm run build
+npx wrangler dev
 ```
 
 在浏览器中打开该地址即可查看项目。
-
-## 构建生产版本
-
-```bash
-npm run build
-```
-
-## 本地预览生产构建
-
-```bash
-npm run preview
-```
 
 ## 部署到 Cloudflare
 
@@ -90,24 +71,6 @@ npx wrangler deploy
 ```
 
 部署到 Cloudflare。
-
-### 通过 GitHub 自动部署
-
-将项目推送到 GitHub 后，在 Cloudflare 中连接该仓库。
-
-如果 Cloudflare 页面只有 `Deploy command`，没有 `Output folder`，请填写：
-
-```bash
-npm run deploy
-```
-
-或者直接填写：
-
-```bash
-npm run build && npx wrangler deploy
-```
-
-Cloudflare 会根据项目根目录的 `wrangler.jsonc` 自动读取 `assets.directory`，并上传 `dist` 目录。
 
 ## Cloudflare D1 数据持久化
 
@@ -185,4 +148,4 @@ npm run deploy
 
 ### 6. 私有访问建议
 
-如果只是个人使用，建议在 Cloudflare Zero Trust / Access 中为这个域名开启访问控制，只允许你的邮箱登录访问。不要把访问 token 写进前端代码。
+在 Cloudflare Zero Trust / Access 中为这个域名开启访问控制
