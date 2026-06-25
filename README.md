@@ -2,6 +2,8 @@
 
 这是一个基于 Vite + React 的生日日历项目。
 
+![birthday-calendar](./data/images/home_screen.png)
+
 ## 环境要求
 
 - Node.js 18 或更高版本
