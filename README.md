@@ -151,3 +151,7 @@ npm run deploy
 ### 6. 私有访问建议
 
 在 Cloudflare Zero Trust / Access 中为这个域名开启访问控制
+
+## Friendly Links
+
+- [LINUX DO](https://linux.do/)
